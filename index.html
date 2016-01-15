@@ -387,30 +387,32 @@ function getNeighborQueryCallback(nowGNJP){
        var dbp_value = items["ndbp"]["value"];
        var dbp_abs = items["abs"]["value"];
        var dbp_wUrl = items["wUrl"]["value"];
+       var gjl1 = gnjp.length - 1;
+       var gjl4 = gnjp.length - 4;
 
-    if(((0 == gnjp_value.lastIndexOf("町")) || (0 == gnjp_value.lastIndexOf("村") )||(
-       (0 != gnjp_value.lastIndexOf("府"))  && ( 0 != gnjp_value.lastIndexOf("県")) &&
-       (0 != gnjp_value.lastIndexOf("都"))  && (0 != gnjp_value.lastIndexOf("郡")) &&(
-       (0 != gnjp_value.lastIndexOf("府大阪市"))
-       && (0 != gnjp_value.lastIndexOf("府堺市"))
-       && (0 != gnjp_value.lastIndexOf("府京都市"))
-       && (0 != gnjp_value.lastIndexOf("道札幌市"))
-       && (0 != gnjp_value.lastIndexOf("県仙台市"))
-       && (0 != gnjp_value.lastIndexOf("県さいたま市"))
-       && (0 != gnjp_value.lastIndexOf("県千葉市"))
-       && (0 != gnjp_value.lastIndexOf("県横浜市"))
-       && (0 != gnjp_value.lastIndexOf("県川崎市"))
-       && (0 != gnjp_value.lastIndexOf("県相模原市"))
-       && (0 != gnjp_value.lastIndexOf("県新潟市"))
-       && (0 != gnjp_value.lastIndexOf("県静岡市"))
-       && (0 != gnjp_value.lastIndexOf("県浜松市"))
-       && (0 != gnjp_value.lastIndexOf("県名古屋市"))
-       && (0 != gnjp_value.lastIndexOf("県神戸市"))
-       && (0 != gnjp_value.lastIndexOf("県岡山市"))
-       && (0 != gnjp_value.lastIndexOf("県広島市"))
-       && (0 != gnjp_value.lastIndexOf("県北九州市"))
-       && (0 != gnjp_value.lastIndexOf("県福岡市"))
-       && (0 != gnjp_value.lastIndexOf("県熊本市"))
+    if(((gjl1 == gnjp_value.lastIndexOf("町")) || (gjl1 == gnjp_value.lastIndexOf("村") )||(
+       (gjl1 != gnjp_value.lastIndexOf("府"))  && ( gjl1 != gnjp_value.lastIndexOf("県")) &&
+       (gjl1 != gnjp_value.lastIndexOf("都"))  && (gjl1 != gnjp_value.lastIndexOf("郡")) &&(
+       (gjl4 != gnjp_value.lastIndexOf("府大阪市"))
+       && ((gjl1 - 2) != gnjp_value.lastIndexOf("府堺市"))
+       && (gjl4 != gnjp_value.lastIndexOf("府京都市"))
+       && (gjl4 != gnjp_value.lastIndexOf("道札幌市"))
+       && (gjl4 != gnjp_value.lastIndexOf("県仙台市"))
+       && ((gjl4-2) != gnjp_value.lastIndexOf("県さいたま市"))
+       && (gjl4 != gnjp_value.lastIndexOf("県千葉市"))
+       && (gjl4 != gnjp_value.lastIndexOf("県横浜市"))
+       && (gjl4 != gnjp_value.lastIndexOf("県川崎市"))
+       && ((gjl4-1) != gnjp_value.lastIndexOf("県相模原市"))
+       && (gjl4 != gnjp_value.lastIndexOf("県新潟市"))
+       && (gjl4 != gnjp_value.lastIndexOf("県静岡市"))
+       && (gjl4 != gnjp_value.lastIndexOf("県浜松市"))
+       && ((gjl4-1) != gnjp_value.lastIndexOf("県名古屋市"))
+       && (gjl4 != gnjp_value.lastIndexOf("県神戸市"))
+       && (gjl4 != gnjp_value.lastIndexOf("県岡山市"))
+       && (gjl4 != gnjp_value.lastIndexOf("県広島市"))
+       && ((gjl4-1) != gnjp_value.lastIndexOf("県北九州市"))
+       && (gjl4     != gnjp_value.lastIndexOf("県福岡市"))
+       && (gjl4     != gnjp_value.lastIndexOf("県熊本市"))
 
 )))
        && (0 == dbp_value.indexOf("http://ja.dbpedia.org"))){
@@ -498,7 +500,7 @@ function getSisetusQueryWimageCallback(tgtGNJP, first){
        var ki_addr = items["address"]["value"];
        var ki_image_url = items["imageUrl"]["value"];
 
-    if((0 == dbp_value.indexOf("http://ja.dbpedia.org")) && (0 == ki_addr.indexOf(kenShi)) && (( 0 != !ki_value.lastIndexOf(")")) && ( 0 != ki_value.lastIndexOf("校")) )){
+    if((0 == dbp_value.indexOf("http://ja.dbpedia.org")) && (0 == ki_addr.indexOf(kenShi)) && (( (ki.length - 1) != !ki_value.lastIndexOf(")")) && ( (ki.length - 1)!= ki_value.lastIndexOf("校")) )){
 
          var qz = new Object();
          qz['key'] = shisetsuKey;
@@ -547,7 +549,7 @@ function getSisetusQueryCallback(tgtGNJP, first){
        var ki_value = items["iname"]["value"];
        var ki_addr = items["address"]["value"];
 
-    if((0 == dbp_value.indexOf("http://ja.dbpedia.org")) && ( 0 == ki_addr.indexOf(kenShi)) && (( 0 != ki_value.lastIndexOf(")")) && ( 0 != ki_value.lastIndexOf("校")) )){
+    if((0 == dbp_value.indexOf("http://ja.dbpedia.org")) && ( 0 == ki_addr.indexOf(kenShi)) && (( (ki.length - 1) != ki_value.lastIndexOf(")")) && ( (ki.length - 1) != ki_value.lastIndexOf("校")) )){
 
          var qz = new Object();
          qz['key'] = shisetsuKey;
