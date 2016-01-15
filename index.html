@@ -500,7 +500,7 @@ function getSisetusQueryWimageCallback(tgtGNJP, first){
        var ki_addr = items["address"]["value"];
        var ki_image_url = items["imageUrl"]["value"];
 
-    if((0 == dbp_value.indexOf("http://ja.dbpedia.org")) && (0 == ki_addr.indexOf(kenShi)) && (( (ki.length - 1) != !ki_value.lastIndexOf(")")) && ( (ki.length - 1)!= ki_value.lastIndexOf("校")) )){
+    if((0 == dbp_value.indexOf("http://ja.dbpedia.org")) && (0 == ki_addr.indexOf(kenShi)) && (( ( ki_value.length - 1) != !ki_value.lastIndexOf(")")) && ( ( ki_value.length - 1)!= ki_value.lastIndexOf("校")) )){
 
          var qz = new Object();
          qz['key'] = shisetsuKey;
@@ -549,7 +549,7 @@ function getSisetusQueryCallback(tgtGNJP, first){
        var ki_value = items["iname"]["value"];
        var ki_addr = items["address"]["value"];
 
-    if((0 == dbp_value.indexOf("http://ja.dbpedia.org")) && ( 0 == ki_addr.indexOf(kenShi)) && (( (ki.length - 1) != ki_value.lastIndexOf(")")) && ( (ki.length - 1) != ki_value.lastIndexOf("校")) )){
+    if((0 == dbp_value.indexOf("http://ja.dbpedia.org")) && ( 0 == ki_addr.indexOf(kenShi)) && (( ( ki_value.length - 1) != ki_value.lastIndexOf(")")) && ( (ki_value.length - 1) != ki_value.lastIndexOf("校")) )){
 
          var qz = new Object();
          qz['key'] = shisetsuKey;
