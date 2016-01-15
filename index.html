@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>隣の町から町へ列島プチ横断クイズ</title>
+<style type="text/css">
+body{
+margin:0px;
+padding:0px;
+font-size:75%;
+font-family:sans-serif;
+background: #fefefe;
+}
+a{
+color:#3987F6;
+text-decoration: none;
+}
+
+.ansok
+{
+	font-size:150%;
+	color:blue;
+}
+
+.ansng
+{	font-size:150%;
+	color:red;
+}
+
+.course
+{
+margin-top:0.5em; margin-bottom:0.5em;
+}
+
+
+</style>
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+<script type="text/javascript" src="http://lod4all.net/api/lfasparql-2.0.0.js"></script>
+<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+<script type="text/javascript">
+
+var gnjpPrefix = "http://geonames.jp/resource/";
+//	スタート地点とゴール地点の組
+var seGnjp = [
+["大阪縦断 北部編","大阪府豊能郡能勢町","大阪府大阪市北区"],
+["大阪縦断 南部編","大阪府泉南郡岬町","大阪府大阪市阿倍野区"],
+["東山陰横断","鳥取県境港市","京都府舞鶴市"],
+["だるまからマグロを求めて","群馬県高崎市","神奈川県三浦市"]
+
+];
+
+
+
+
+
+//  LOD4ALL
+var lfasparql = new LFASparql();
+var lod4AllAppID = "xawsaykmcb";
+
+//  始点
+var startGNJP;
+//  終点
+var endGNJP;
+var endKenShi;
+//  現在地
+var nowGNJP;
+
+// クイズの答え
+//  [gnjp][0 1 2 ]-an/type
+var gnjpQuizeData = new Object();
+
+// dbpのアブストラクト
+var gnjpAbs = new Object();
+
+//  実行数
+var procCounter;
+
+// uri
+var hanaUri = "http://ja.dbpedia.org/property/花";
+var kiUri = "http://ja.dbpedia.org/property/木";
+var toriUri = "http://ja.dbpedia.org/property/鳥など";
+var shisetsuKey = "sisetsu";
+
+
+//  クイズ処理の部分(Sparqlのcallbackから呼ばれる
+// この実装はLOD4ALLはページの生成期間中は不変の前提
+var hFO = new Object();
+var kFO = new Object();
+var tFO = new Object();
+var sFO = new Object();
+
+
+$(document).ready( function() {
+
+loadStartEnd();
+
+
+
+//  loadData();
+$('img').error(function() {
+        $(this).remove();
+    });
+});
+
+function loadStartEnd(){
+	  graph.reset();
+	
+  $("#result").empty();
+  $("#answer").empty();
+  $("#answerimg").empty();
+  $("#answerres").empty();
+  $("#answersel").empty();
+  $("#abs").empty();
+  $("#msg").empty();
+  
+	$("#answerimg").append("<h2>隣の町から町へ列島プチ横断クイズ</h2>").append("<h2>コースを選んでください</h2>");
+	 $("#answerimg").append("<div ><ul >");
+	for(var i = 0; i < seGnjp.length; i++){
+	
+	  $("#answerimg").append(
+	  "<li class='course'><a href='javascript:courceSel(" + i + ");'>" +seGnjp[i][0] + "</a><br/> "+ seGnjp[i][1] + "～" +  seGnjp[i][2] + "</li>"
+	  );
+	}
+	$("#answerimg").append(
+	  "<li class='course'><a href='javascript:courceSelByForm();'>" +"都道府県から市町村、区名を入力" + "</a><br/>"		+ "スタート:<input id='startks' type='text'  size='16' value='大阪府豊能郡能勢町'/><br/>"
+    + " ゴール:<input id='endks' type='text'  size='16' value='兵庫県神戸市北区'/><br/>"
+	  +"※郡部は郡も入れてください。振興局、支庁は入れないでください。</li>"
+	);
+		 $("#answerimg").append("</ul></div>");
+}
+
+function courceSel(o){
+	startGNJP = gnjpPrefix + seGnjp[o][1];
+	endGNJP = gnjpPrefix + seGnjp[o][2];
+	start();
+}
+
+function courceSelByForm(){
+	startGNJP = gnjpPrefix +  $("#startks").val();
+	endGNJP = gnjpPrefix +  $("#endks").val();
+	start();
+}
+
+
+function start(){
+  reset();
+  proc(startGNJP);
+}
+
+function reset(){
+  $("#result").empty();
+  $("#answer").empty();
+  $("#answerimg").empty();
+  $("#answerres").empty();
+  $("#answersel").empty();
+  $("#abs").empty();
+  $("#msg").empty();
+
+ hFO = new Object();
+ kFO = new Object();
+ tFO = new Object();
+ sFO = new Object();
+
+
+  nowGNJP = startGNJP;
+  endKenShi = getGNJPKenShi(endGNJP);
+  procCounter = 0;
+  gnjpQuizeData = new Object();
+  graph.reset();
+}
+
+//  クイズへのURLたたいたときの処理
+function quiz(toGnjp){
+	   procCounter++;
+	   var tkenShi = getGNJPKenShi(nowGNJP);
+	   $("#result").empty().append(
+      procCounter + "回目の挑戦 現在地:" + tkenShi + " 目的地：" + endKenShi
+    );
+	   
+	   
+  $("#msg").empty();
+  $("#abs").empty().append(gnjpAbs[toGnjp]);
+  
+  
+if(!sFO[toGnjp]){
+  var  sisetsuQuery = getKuSisetsuWimageQuery(toGnjp);
+  lfasparql.executeSparql({
+    appID: lod4AllAppID,
+    sparql: sisetsuQuery,
+    success: getSisetusQueryWimageCallback(toGnjp,false),
+    error: getError
+  });
+}else{
+  setQuize(shisetsuKey,toGnjp);
+}
+  
+if(!kFO[toGnjp]){
+  var kiQuery = getKiHanaToriQuery(toGnjp,kiUri);
+  lfasparql.executeSparql({
+    appID: lod4AllAppID,
+    sparql: kiQuery,
+    success: getHanaKiToriQueryCallback(toGnjp,kiUri,false),
+    error: getError
+  });
+}else{
+  setQuize(kiUri,toGnjp);
+}
+if(!hFO[toGnjp]){
+  var hanaQuery = getKiHanaToriQuery(toGnjp,hanaUri);
+  lfasparql.executeSparql({
+    appID: lod4AllAppID,
+    sparql: hanaQuery,
+    success: getHanaKiToriQueryCallback(toGnjp,hanaUri,false),
+    error: getError
+  });
+}else{
+  setQuize(hanaUri,toGnjp);
+}
+if(!tFO[toGnjp]){
+  var toriQuery = getKiHanaToriQuery(toGnjp,toriUri);
+  lfasparql.executeSparql({
+    appID: lod4AllAppID,
+    sparql: toriQuery,
+    success: getHanaKiToriQueryCallback(toGnjp,toriUri,false),
+    error: getError
+  });
+}else{
+  setQuize(toriUri,toGnjp);
+}
+
+
+}
+
+//  隣接を取って、クイズへのURL埋め込み
+function proc() {
+	
+	
+	
+     var tkenShi = getGNJPKenShi(nowGNJP);
+     var tShi = getGNJPShi(nowGNJP);
+//---
+    $("#result").empty().append(
+      procCounter + "回目の挑戦 現在地:" + tkenShi + " 目的地：" + endKenShi
+    );
+  $("#msg").empty().append(tShi +"からの移動先を選んでください。");
+     graph.resetTarget();
+     setCurrentNode(nowGNJP, "★"+tShi);
+
+  // 自分自身のデータを取る
+  if(!gnjpAbs[nowGNJP] ){
+    var ownQuery = getOwnQuery(nowGNJP);
+  lfasparql.executeSparql({
+    appID: lod4AllAppID,
+    sparql: ownQuery,
+    success: getOwnQueryCallback(nowGNJP),
+    error: getError
+  });
+  }
+  
+  
+//  隣接を取る
+  var neighborQuery = getNeighborQuery(nowGNJP);
+  lfasparql.executeSparql({
+    appID: lod4AllAppID,
+    sparql: neighborQuery,
+    success: getNeighborQueryCallback(nowGNJP),
+    error: getError
+  });
+
+
+if(!sFO[nowGNJP]){
+  var sisetsuWimageQuery = getKuSisetsuWimageQuery(nowGNJP);
+  lfasparql.executeSparql({
+    appID: lod4AllAppID,
+    sparql: sisetsuWimageQuery,
+    success: getSisetusQueryWimageCallback(nowGNJP,true),
+    error: getError
+  });
+}else{
+
+}
+if(!hFO[nowGNJP]){
+  var hanaQuery = getKiHanaToriQuery(nowGNJP,hanaUri);
+  lfasparql.executeSparql({
+    appID: lod4AllAppID,
+    sparql: hanaQuery,
+    success: getHanaKiToriQueryCallback(nowGNJP,hanaUri,true),
+    error: getError
+  });
+}else{
+
+}
+if(!tFO[nowGNJP]){
+  var toriQuery = getKiHanaToriQuery(nowGNJP,toriUri);
+  lfasparql.executeSparql({
+    appID: lod4AllAppID,
+    sparql: toriQuery,
+    success: getHanaKiToriQueryCallback(nowGNJP,toriUri,true),
+    error: getError
+  });
+}else{
+
+}
+if(!kFO[nowGNJP]){
+  var kiQuery = getKiHanaToriQuery(nowGNJP,kiUri);
+  lfasparql.executeSparql({
+    appID: lod4AllAppID,
+    sparql: kiQuery,
+    success: getHanaKiToriQueryCallback(nowGNJP,kiUri,true),
+    error: getError
+  });
+}else{
+}
+
+
+}
+
+//------------ Query
+//  自分のwiki
+function getOwnQuery(gnjp){
+    return  "select distinct ?dbp ?abs ?wUrl where { <" +   gnjp + "> <http://www.w3.org/2002/07/owl#sameAs> ?dbp . ?dbp <http://dbpedia.org/ontology/abstract> ?abs .  ?dbp <http://www.w3.org/ns/prov#wasDerivedFrom> ?wUrl .}";
+}
+
+
+
+//  隣接DBP
+function getNeighborQuery(gnjp){
+    return  "select distinct ?ngnjp ?ndbp ?abs ?wUrl where { <" +   gnjp + "> <http://www.geonames.org/ontology#neighbour> ?ngnjp .   ?ngnjp <http://www.w3.org/2002/07/owl#sameAs> ?ndbp . ?ndbp <http://dbpedia.org/ontology/abstract> ?abs .  ?ndbp <http://www.w3.org/ns/prov#wasDerivedFrom> ?wUrl .}";
+}
+
+//  市町村の花、木、鳥取得
+function getKiHanaToriQuery(tgtGnjp, khtUri){
+    return  "select distinct ?dbp ?kiuri ?iname ?imageUrl where { <" +   tgtGnjp + "> <http://www.w3.org/2002/07/owl#sameAs> ?dbp .  ?dbp <" +khtUri + "> ?kiuri. ?kiuri <http://www.w3.org/2000/01/rdf-schema#label> ?iname .    ?kiuri <http://dbpedia.org/ontology/thumbnail> ?imageUrl . }";
+}
+
+//  施設取得
+function getSisetsuQuery(tgtGnjp){
+    return  "select distinct ?dbp ?kiuri ?iname ?address where { <" +   tgtGnjp + "> <http://www.w3.org/2002/07/owl#sameAs> ?dbp .  ?dbp <http://dbpedia.org/ontology/wikiPageWikiLink> ?kiuri. ?kiuri <http://www.w3.org/2000/01/rdf-schema#label> ?iname . ?kiuri <http://dbpedia.org/ontology/address> ?address . }";
+}
+
+//  施設取得(imgつき)
+function getKuSisetsuWimageQuery(tgtGnjp){
+    return  "select distinct ?dbp ?kiuri ?iname ?address ?imageUrl where { <" +   tgtGnjp + "> <http://www.w3.org/2002/07/owl#sameAs> ?dbp .  ?dbp <http://dbpedia.org/ontology/wikiPageWikiLink> ?kiuri. ?kiuri <http://www.w3.org/2000/01/rdf-schema#label> ?iname . ?kiuri <http://dbpedia.org/ontology/address> ?address . ?kiuri <http://dbpedia.org/ontology/thumbnail> ?imageUrl . }";
+}
+//	未使用　駅のみ
+function getKuEkiQuery(tgtGnjp){
+    return  "select distinct ?dbp ?kiuri ?iname ?address ?imageUrl where { <" +   tgtGnjp + "> <http://www.w3.org/2002/07/owl#sameAs> ?dbp .  ?dbp <http://dbpedia.org/ontology/wikiPageWikiLink> ?kiuri. ?kiuri <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://dbpedia.org/ontology/Station> . ?kiuri <http://www.w3.org/2000/01/rdf-schema#label> ?iname . ?kiuri <http://dbpedia.org/ontology/address> ?address . }";
+}
+
+
+
+
+//  Queryの結果処理
+function getOwnQueryCallback(nowGNJP){
+  return function (data) {
+
+     for(var i = 0; i < data.length; i++) {
+       var items = data[i];
+       var dbp_value = items["dbp"]["value"];
+       var dbp_abs = items["abs"]["value"];
+       var dbp_wUrl = items["wUrl"]["value"];
+
+       var qPos = dbp_wUrl.indexOf('?');
+       var wUrl = dbp_wUrl.substring(0, qPos);
+        if(dbp_abs.length > 120){
+            dbp_abs = dbp_abs.substring(0,118) + "… ";
+       }
+
+       gnjpAbs[nowGNJP] = dbp_abs + " <a href='" + wUrl
+      + "' target='_blank' >→ウィキぺディア</a>";
+      
+  $("#abs").empty().append(gnjpAbs[nowGNJP]);
+    }
+  };
+}
+
+
+
+//  隣接市町村を取得
+function getNeighborQueryCallback(nowGNJP){
+  return function (data) {
+
+     var cnt = 0;
+     for(var i = 0; i < data.length; i++) {
+       var items = data[i];
+       var gnjp_value = items["ngnjp"]["value"];
+       var dbp_value = items["ndbp"]["value"];
+       var dbp_abs = items["abs"]["value"];
+       var dbp_wUrl = items["wUrl"]["value"];
+
+    if((gnjp_value.endsWith("町") || gnjp_value.endsWith("村") ||(
+       !gnjp_value.endsWith("府")  && !gnjp_value.endsWith("県") &&
+       !gnjp_value.endsWith("都")  && !gnjp_value.endsWith("郡") &&(
+       !gnjp_value.endsWith("府大阪市")
+       && !gnjp_value.endsWith("府堺市")
+       && !gnjp_value.endsWith("府京都市")
+       && !gnjp_value.endsWith("道札幌市")
+       && !gnjp_value.endsWith("県仙台市")
+       && !gnjp_value.endsWith("県さいたま市")
+       && !gnjp_value.endsWith("県千葉市")
+       && !gnjp_value.endsWith("県横浜市")
+       && !gnjp_value.endsWith("県川崎市")
+       && !gnjp_value.endsWith("県相模原市")
+       && !gnjp_value.endsWith("県新潟市")
+       && !gnjp_value.endsWith("県静岡市")
+       && !gnjp_value.endsWith("県浜松市")
+       && !gnjp_value.endsWith("県名古屋市")
+       && !gnjp_value.endsWith("県神戸市")
+       && !gnjp_value.endsWith("県岡山市")
+       && !gnjp_value.endsWith("県広島市")
+       && !gnjp_value.endsWith("県北九州市")
+       && !gnjp_value.endsWith("県福岡市")
+       && !gnjp_value.endsWith("県熊本市")
+
+)))
+       && dbp_value.startsWith("http://ja.dbpedia.org")){
+       cnt++;
+       var qPos = dbp_wUrl.indexOf('?');
+       var wUrl = dbp_wUrl.substring(0, qPos);
+        if(dbp_abs.length > 120){
+            dbp_abs = dbp_abs.substring(0,118) + "… ";
+       }
+
+       gnjpAbs[gnjp_value] = dbp_abs + " <a href='" + wUrl
+      + "' target='_blank' >→ウィキぺディア</a>";
+
+
+  console.log(cnt + " " + dbp_value );
+     var tShi = getGNJPShi(gnjp_value);
+     if(gnjp_value == endGNJP){
+        tShi = "☆" + tShi;
+      }
+
+   addTargetNode(nowGNJP, gnjp_value, tShi);
+
+
+    }
+  }
+  if(cnt == 0){
+		  $("#msg").empty().append("スタート地点、もしくはスタート地点に隣接している市町村区が見つかりません。<a href='javascript:loadStartEnd();'>コース選択からやり直してください</a>。");
+	}
+deletOldNode();
+  };
+}
+
+
+//  市町村の木・花の処理
+function getHanaKiToriQueryCallback(tgtGNJP, key,first){
+   return function (data) {
+
+     var cnt = 0;
+     var kenShi = getGNJPKenShi(tgtGNJP);
+     var quizeData = gnjpQuizeData[tgtGNJP];
+     if(!quizeData){
+         quizeData = new Array();
+         gnjpQuizeData[tgtGNJP] = quizeData;
+     }
+
+     for(var i = 0; i < data.length; i++) {
+       var items = data[i];
+       var dbp_value = items["dbp"]["value"];
+       var ki_value = items["iname"]["value"];
+       var ki_image_url = items["imageUrl"]["value"];
+
+      if(dbp_value.startsWith("http://ja.dbpedia.org")){
+         var qz = new Object();
+         qz['key'] = key;
+         qz['name'] =  ki_value;
+         qz['image'] = encodeURI(ki_image_url);
+  quizeData.push(qz);
+         cnt++;
+  console.log(kenShi + " " + key + " " +ki_value );
+      }
+    }
+    if(!first){
+    	setQuize(key,tgtGNJP);
+    }
+  };
+}
+
+//  市町村の施設
+//	imgつきが0件の場合はimgなしで投げ返す
+function getSisetusQueryWimageCallback(tgtGNJP, first){
+     return function (data) {
+
+     var cnt = 0;
+     var kenShi = getGNJPKenShi(tgtGNJP);
+     var quizeData = gnjpQuizeData[tgtGNJP];
+     if(!quizeData){
+         quizeData = new Array();
+         gnjpQuizeData[tgtGNJP] = quizeData;
+     }
+
+     for(var i = 0; i < data.length; i++) {
+       var items = data[i];
+       var dbp_value = items["dbp"]["value"];
+       var ki_value = items["iname"]["value"];
+       var ki_addr = items["address"]["value"];
+       var ki_image_url = items["imageUrl"]["value"];
+
+    if(dbp_value.startsWith("http://ja.dbpedia.org") && ki_addr.startsWith(kenShi) && (!ki_value.endsWith(")") && !ki_value.endsWith("校") )){
+
+         var qz = new Object();
+         qz['key'] = shisetsuKey;
+         qz['name'] =  ki_value;
+         qz['address'] = ki_addr;
+         qz['image'] = encodeURI(ki_image_url);
+  quizeData.push(qz);
+         cnt++;
+  console.log(kenShi + " s " +ki_value );
+
+    }
+  }
+  if(!first){
+		if(cnt == 0){
+			  var  sisetsuQuery = getSisetsuQuery(tgtGNJP);
+  lfasparql.executeSparql({
+    appID: lod4AllAppID,
+    sparql: sisetsuQuery,
+    success: getSisetusQueryCallback(tgtGNJP,first),
+    error: getError
+  });
+
+			
+		}else{
+		 	setQuize(shisetsuKey,tgtGNJP);
+		}
+  }
+  };
+}
+
+//  市町村の施設
+function getSisetusQueryCallback(tgtGNJP, first){
+     return function (data) {
+
+     var cnt = 0;
+     var kenShi = getGNJPKenShi(tgtGNJP);
+     var quizeData = gnjpQuizeData[tgtGNJP];
+     if(!quizeData){
+         quizeData = new Array();
+         gnjpQuizeData[tgtGNJP] = quizeData;
+     }
+
+     for(var i = 0; i < data.length; i++) {
+       var items = data[i];
+       var dbp_value = items["dbp"]["value"];
+       var ki_value = items["iname"]["value"];
+       var ki_addr = items["address"]["value"];
+
+    if(dbp_value.startsWith("http://ja.dbpedia.org") && ki_addr.startsWith(kenShi) && (!ki_value.endsWith(")") && !ki_value.endsWith("校") )){
+
+         var qz = new Object();
+         qz['key'] = shisetsuKey;
+         qz['name'] =  ki_value;
+         qz['address'] = ki_addr;
+  quizeData.push(qz);
+         cnt++;
+  console.log(kenShi + " s " +ki_value );
+
+    }
+  }
+  if(!first){
+  	setQuize(shisetsuKey,tgtGNJP);
+  }
+  };
+}
+
+
+
+
+var answerObj, questionObj;
+
+function setQuize(iKey, tgtGNJP){
+try{
+  console.log(tgtGNJP + " " + iKey);
+
+ if(iKey == hanaUri)hFO[tgtGNJP]=true;
+ if(iKey == kiUri)kFO[tgtGNJP]=true;
+ if(iKey == toriUri)tFO[tgtGNJP]=true;
+ if(iKey == shisetsuKey)sFO[tgtGNJP]=true;
+
+ // 最初の呼び出し
+  if(gnjpQuizeData.length == 1){
+    return;
+  }
+
+  if(!(hFO[tgtGNJP] && kFO[tgtGNJP] && tFO[tgtGNJP] && sFO[tgtGNJP])){ //他の処理待ち
+    return;
+  }
+  $("#answer").empty();
+  $("#answersel").empty();
+  $("#answerimg").empty();
+  $("#answerres").empty();
+
+  
+  var kenShi = getGNJPKenShi(tgtGNJP);
+  var shi = getGNJPShi(tgtGNJP);
+
+  //答えを選ぶ
+  var quizeData = gnjpQuizeData[tgtGNJP];
+  if(!quizeData || quizeData.length == 0){
+        //  答えがない場合の処理→無条件ＯＫ
+
+       $("#answer").append("クイズはありません。<a href='javascript:answer(true,true,\"" +tgtGNJP + "\");'>次に移動</a>");
+
+     }else{
+       var quizeSize = quizeData.length;
+       var quizeAnsHash = new Object();
+       for(var i = 0; i < quizeSize; i++){
+           quizeAnsHash[quizeData[i].name]=quizeData[i].name;
+       }
+
+       var rand = Math.floor( Math.random() * quizeSize  ) ;
+       answerObj = quizeData[rand];
+       var answerKey = answerObj.key;
+       var otherAns = new Array();
+       var nPosQuizeData = gnjpQuizeData[nowGNJP];
+       for(var i = 0; i < nPosQuizeData.length; i++) {
+         if(answerObj.key == nPosQuizeData[i].key){
+            if(quizeAnsHash[nPosQuizeData[i].name]){
+              console.log("same ans:" + nPosQuizeData[i].name);
+            }else{
+        otherAns.push(nPosQuizeData[i]);
+            }
+         }
+       }
+       var otherAnsLng = otherAns.length *2 + 1;
+       questionObj;
+       if(otherAns.length == 0){  //  そのカテゴリのものがない
+  questionObj = answerObj;
+       }else{
+         var qusRnd = Math.floor( Math.random() * otherAnsLng  ) ;
+         if(qusRnd >= otherAns.length ){
+    questionObj = answerObj;
+        }else{
+    questionObj = otherAns[qusRnd];
+        }
+       }
+  if(!questionObj.name){
+  consle.log(questionObj);
+}
+
+       var qusStr ;
+       var imgStr ;
+       if(answerKey == hanaUri){
+qusStr = shi + "の花は<b>"　+ questionObj.name + "</b>である。<br/>";
+imgStr = "<img src=\""  + (questionObj.image) + "\"/><br/>";
+       }else if(answerKey == kiUri){
+qusStr = shi + "の木は<b>"　+ questionObj.name + "</b>である。<br/>";
+imgStr = "<img src=\""  + (questionObj.image) + "\"/><br/>";
+       }else if(answerKey == toriUri){
+qusStr = shi + "の鳥は<b>"　+ questionObj.name + "</b>である。<br/>";
+imgStr = "<img src=\""  + (questionObj.image) + "\"/><br/>";
+       }else if(answerKey == shisetsuKey){
+qusStr =  "<b>" + questionObj.name + "</b>は" + shi + "にある。<br/>";
+if(questionObj.image){
+	imgStr = "<img src=\""  + (questionObj.image) + "\"/><br/>";
+}
+      }
+
+       $("#answer").append("問題：" + qusStr);
+       $("#answersel").append("<a class='ansok' href='javascript:answer(true,false,\"" +tgtGNJP + "\");'>○</a>　　　<a class='ansng' href='javascript:answer(false,false,\"" +tgtGNJP + "\");'>×</a>");
+       $("#answerimg").append(imgStr);
+    }
+}catch(e){
+  consle.log(e);
+}
+
+}
+
+function answer(ans, pass,tgtGNJP){
+  var ok = false;
+  if(pass){
+    ok = true;
+  }else{
+    if(ans){
+     ok = (questionObj.name == answerObj.name);
+  }else{
+     ok = (questionObj.name != answerObj.name);
+  }
+}
+      var ansStr = ans?"○":"×";
+      var shi = getGNJPShi(tgtGNJP);
+      var nowShi = getGNJPShi(nowGNJP);
+  $("#answersel").empty();
+  if(ok){
+		   if(pass){
+			 	$("#answerres").append(shi +" に移動します。");
+				}else{
+       	$("#answerres").append(ansStr + " → 正解です。" +shi +" に移動します。");      }
+  if(tgtGNJP == endGNJP){
+       $("#msg").empty().append("目的地に"+ procCounter + "回の挑戦で到着しました。<a href='javascript:loadStartEnd();'>再挑戦する</a>");
+    return;
+  }
+      nowGNJP = tgtGNJP;
+      proc();
+  }else{
+    $("#answerres").append(ansStr + " → 不正解です。" +shi +"には行けませんでした。<br/>"
++ nowShi +" に戻ります。");
+graph.resetSelect();
+  }
+}
+
+function getGNJPKenShi(gnjp){
+    return gnjp.substring(28);
+}
+
+function getGNJPShi(gnjp){
+    var kenshi = getGNJPKenShi(gnjp);
+    var gunPos = kenshi.indexOf("郡");
+    if(gunPos > 1){
+// 郡部
+       return kenshi.substring(gunPos+1);
+     }
+// 市町村(政令市区は政令市もつける)
+     if(kenshi.startsWith("鹿児島" ) || kenshi.startsWith("神奈川" ) ||
+ kenshi.startsWith("和歌山" )){
+     return kenshi.substring(4);
+   }
+    return kenshi.substring(3);
+}
+
+
+
+
+
+
+function getError(xhr, status, error) {
+  console.log("Error occured: " + status + "\nError: " + error + "\nError detail: " + xhr.responseText);
+  		  $("#msg").empty().append("エラーが発生しました。<a href='javascript:loadStartEnd();'>コース選択からやり直してください</a>。");
+  
+}
+
+//-------------------------------------------------------------------
+//  view
+var graph;
+
+function addLinkNode(fromId, toId) {
+  graph.addGraphNode(toId);
+  graph.addGraphLink(fromId, toId);
+}
+
+function removeLinkOnly(fromId, toId) {
+  graph.removeGraphLink(fromId, toId);
+}
+
+////////////////////////////////////
+// view+cnt
+
+var COL_CURRENT = "blue";
+var COL_TGT = "red";
+var COL_PAST = "gray";
+var COL_OTHER = "green";
+var COL_SELECTED ="orange";
+
+function deletOldNode(){
+  graph.deletOldNode();
+}
+
+function setCurrentNode(id, lable){
+  graph.addCurrentGraphNode(id, lable);
+}
+
+function addTargetNode(fromId, toId, toLabel) {
+  graph.addTgtGraphNode(toId, toLabel);
+  graph.addGraphLink(fromId, toId);
+}
+
+</script>
+
+
+</head>
+<body>
+<table>
+<tr><td colspan="2">
+<div id="result"></div>
+</td></tr>
+<tr><td width="800px"  valign="top">
+<div id="mygraph" width="800px" height="600px"></div>
+<script type="text/javascript">
+
+function myGraph() {
+     var currentId = "e";
+     var tgtIds = new Object();
+     var pastIds = new Object();
+     var selectedId = "";
+
+
+    this.addCurrentGraphNode = function (id,name) {
+        currentId = id;
+        pastIds[id]=id;
+        nodes.push({"id":id,"name":name});
+        update();
+    }
+
+    this.addTgtGraphNode = function (id,name) {
+        tgtIds[id]=id;
+        nodes.push({"id":id,"name":name});
+//        update();
+    }
+
+    this.addGraphNode = function (id,name) {
+        nodes.push({"id":id,"name":name});
+        update();
+    }
+
+    this.removeGraphNode = function (id) {
+        var i = 0;
+        var n = findNode(id);
+        while (i < links.length) {
+            if ((links[i]['source'] === n)||(links[i]['target'] == n)) links.splice(i,1);
+            else i++;
+        }
+        var index = findNodeIndex(id);
+        if(index !== undefined) {
+            nodes.splice(index, 1);
+            update();
+        }
+    }
+
+
+    this.addGraphLink = function (sourceId, targetId) {
+        var sourceNode = findNode(sourceId);
+        var targetNode = findNode(targetId);
+
+        if((sourceNode !== undefined) && (targetNode !== undefined)) {
+            links.push({"source": sourceNode, "target": targetNode});
+            update();
+        }
+    }
+
+    this.removeGraphLink = function(sourceId, targetId){
+        var sourceNode = findNode(sourceId);
+        var targetNode = findNode(targetId);
+
+        if((sourceNode !== undefined) && (targetNode !== undefined)) {
+            var i = 0;
+            while (i < links.length) {
+
+                if ((links[i]['source'] === sourceNode)&&(links[i]['target'] == targetNode)){
+              links.splice(i,1);
+             }else if((links[i]['source'] === targetNode)&&(links[i]['target'] == sourceNode)){
+    links.splice(i,1);
+            }else i++;
+            }
+            update();
+        }
+    }
+
+    var findNode = function (id) {
+        for (var i=0; i < nodes.length; i++) {
+            if (nodes[i].id === id)
+                return nodes[i]
+        };
+    }
+
+    var findNodeIndex = function (id) {
+        for (var i=0; i < nodes.length; i++) {
+            if (nodes[i].id === id)
+                return i
+        };
+    }
+
+
+    var w = 800, h = 600;
+    var vis =this.vis =  d3.select('#mygraph').append('svg').attr({
+            width: w,
+            height: h
+    });
+vis.append('g').attr("class","linkg");
+
+    var force = d3.layout.force()
+        .gravity(.05)
+        .distance(200)
+        .charge(-400)
+        .size([w, h]);
+
+    var nodes = force.nodes(),
+        links = force.links();
+
+    var update = function () {
+        var linkg = vis.select("g.linkg");
+        var link = linkg.selectAll("line.link")
+            .data(links, function(d) { return d.source.id + "-" + d.target.id; });
+
+
+        link.enter().insert("line")
+            .attr("class", "link");
+
+        link.exit().remove();
+
+        var node = vis.selectAll("g.node")
+            .data(nodes, function(d) { return d.id;});
+
+        var nodeEnter = node.enter().append("g")
+            .attr("class", "node")
+            .call(force.drag);
+
+
+        nodeEnter.append("ellipse")
+            .attr("class", "ellipse")
+            .attr("rx", "50")
+            .attr("ry", "16")
+            .attr("stroke-width", "2")
+            .attr("cx", function(d) { return d.x; })
+            .attr("cy", function(d) { return d.y; })
+            .on('click', function(d, i) {
+               if(tgtIds[d.id]){
+                   selectedId = d.id;
+                   d3.select(this).attr("stroke","orange");
+                    quiz(d.id);
+                }
+            });
+
+        nodeEnter.append("text")
+            .attr("class", "nodetext")
+            .attr("dx", function(d) { return -(d.name.length)*6; })
+            .attr("dy", ".35em")
+            .attr("pointer-events","none")
+            .text(function(d) {return d.name});
+
+        node.exit().remove();
+
+        force.on("tick", function() {
+          link.attr("x1", function(d) { return d.source.x; })
+              .attr("y1", function(d) { return d.source.y; })
+              .attr("x2", function(d) { return d.target.x; })
+              .attr("y2", function(d) { return d.target.y; })
+              .attr("stroke", "black")
+              .attr("stroke-width", "2");
+          link.on('click', function(d, i) {
+//    removeLinkOnly(d.source.id, d.target.id );
+            });
+
+          node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+        });
+        var allNodes = vis.selectAll("ellipse.ellipse");
+        allNodes.attr("stroke", function(d){
+             if(d.id == currentId){
+               return COL_CURRENT;
+             }else if(d.id == selectedId){
+               return COL_SELECTED;
+             }else if(tgtIds[d.id]){
+               return COL_TGT;
+             }else if(pastIds[d.id]){
+               return COL_PAST;
+             }
+             return COL_OTHER;
+            })
+            .attr("fill", "#EEEEEE");
+
+
+        force.start();
+    }
+    update();
+
+    this.deletOldNode = function(){
+        var delIds = new Array();
+
+        for (var i=0; i < nodes.length; i++) {
+            if (! (pastIds[nodes[i].id] || tgtIds[nodes[i].id]))
+              delIds.push(nodes[i].id);
+        }
+        for (var i=0; i < delIds.length; i++) {
+               this.removeGraphNode(delIds[i]);
+        }
+        update();
+    }
+    
+  this.resetTarget = function(){
+    tgtIds = new Object();
+    update();
+  }
+
+  this.resetSelect = function(){
+    selectedId = "";
+    update();
+  }
+
+  this.reset = function(){
+    currentId = "e";
+    tgtIds = new Object();
+    pastIds = new Object();
+    this.deletOldNode();
+  }
+
+}
+graph = new myGraph();
+</script>
+</td>
+<td valign="top">
+<table width="400px" border="1">
+<tr height="80px"><td>
+<div id="abs"></div>
+</td></tr>
+<tr height="40px"><td>
+<div id="answer"></div>
+</td></tr>
+<tr height="30px" align="center"><td>
+<div id="answersel"></div>
+</td></tr>
+</td></tr>
+<tr height="400px"><td align="center">
+<div id="answerimg" ></div>
+</td></tr>
+<tr height="40px"><td>
+<div id="answerres" ><br/></div>
+</td></tr>
+<tr height="40px"><td>
+<div id="msg" ><br/></div>
+</td></tr>
+</table>
+
+</td></tr>
+<tr><td colspan="2">
+<ul>
+
+<li>市町村区の楕円はマウスのドラッグで移動させることができます。</li>
+<li><font color="blue">青</font>で囲まれたのは現在の市町村区、<font color="gray">灰色</font>で囲まれたのは今までのルート上の市町村区、<font color="orange">オレンジ</font>で囲まれたのは現在選択中の市町村です。</li>
+<li>☆はスタートした市町村区、★はゴールの市町村・区です。</li>
+<li><font color="red">赤</font>で囲まれた市町村区をクリックすることでクイズに挑戦して移動することができます。</li>
+<li>コース選択からやり直す場合は<a href='javascript:loadStartEnd();'>こちら</a></li>
+</li>
+</ul>
+</td></tr>
+</table>
+</body>
+</html>
