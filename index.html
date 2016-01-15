@@ -388,29 +388,29 @@ function getNeighborQueryCallback(nowGNJP){
        var dbp_abs = items["abs"]["value"];
        var dbp_wUrl = items["wUrl"]["value"];
 
-    if((gnjp_value.lastIndexOf("町") || gnjp_value.lastIndexOf("村") ||(
-       !gnjp_value.lastIndexOf("府")  && !gnjp_value.lastIndexOf("県") &&
-       !gnjp_value.lastIndexOf("都")  && !gnjp_value.lastIndexOf("郡") &&(
-       !gnjp_value.lastIndexOf("府大阪市")
-       && !gnjp_value.lastIndexOf("府堺市")
-       && !gnjp_value.lastIndexOf("府京都市")
-       && !gnjp_value.lastIndexOf("道札幌市")
-       && !gnjp_value.lastIndexOf("県仙台市")
-       && !gnjp_value.lastIndexOf("県さいたま市")
-       && !gnjp_value.lastIndexOf("県千葉市")
-       && !gnjp_value.lastIndexOf("県横浜市")
-       && !gnjp_value.lastIndexOf("県川崎市")
-       && !gnjp_value.lastIndexOf("県相模原市")
-       && !gnjp_value.lastIndexOf("県新潟市")
-       && !gnjp_value.lastIndexOf("県静岡市")
-       && !gnjp_value.lastIndexOf("県浜松市")
-       && !gnjp_value.lastIndexOf("県名古屋市")
-       && !gnjp_value.lastIndexOf("県神戸市")
-       && !gnjp_value.lastIndexOf("県岡山市")
-       && !gnjp_value.lastIndexOf("県広島市")
-       && !gnjp_value.lastIndexOf("県北九州市")
-       && !gnjp_value.lastIndexOf("県福岡市")
-       && !gnjp_value.lastIndexOf("県熊本市")
+    if(((0 == gnjp_value.lastIndexOf("町")) || (0 == gnjp_value.lastIndexOf("村") )||(
+       (0 != gnjp_value.lastIndexOf("府"))  && ( 0 != gnjp_value.lastIndexOf("県")) &&
+       (0 != gnjp_value.lastIndexOf("都"))  && (0 != gnjp_value.lastIndexOf("郡")) &&(
+       (0 != gnjp_value.lastIndexOf("府大阪市"))
+       && (0 != gnjp_value.lastIndexOf("府堺市"))
+       && (0 != gnjp_value.lastIndexOf("府京都市"))
+       && (0 != gnjp_value.lastIndexOf("道札幌市"))
+       && (0 != gnjp_value.lastIndexOf("県仙台市"))
+       && (0 != gnjp_value.lastIndexOf("県さいたま市"))
+       && (0 != gnjp_value.lastIndexOf("県千葉市"))
+       && (0 != gnjp_value.lastIndexOf("県横浜市"))
+       && (0 != gnjp_value.lastIndexOf("県川崎市"))
+       && (0 != gnjp_value.lastIndexOf("県相模原市"))
+       && (0 != gnjp_value.lastIndexOf("県新潟市"))
+       && (0 != gnjp_value.lastIndexOf("県静岡市"))
+       && (0 != gnjp_value.lastIndexOf("県浜松市"))
+       && (0 != gnjp_value.lastIndexOf("県名古屋市"))
+       && (0 != gnjp_value.lastIndexOf("県神戸市"))
+       && (0 != gnjp_value.lastIndexOf("県岡山市"))
+       && (0 != gnjp_value.lastIndexOf("県広島市"))
+       && (0 != gnjp_value.lastIndexOf("県北九州市"))
+       && (0 != gnjp_value.lastIndexOf("県福岡市"))
+       && (0 != gnjp_value.lastIndexOf("県熊本市"))
 
 )))
        && (0 == dbp_value.indexOf("http://ja.dbpedia.org"))){
