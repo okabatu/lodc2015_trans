@@ -388,32 +388,32 @@ function getNeighborQueryCallback(nowGNJP){
        var dbp_abs = items["abs"]["value"];
        var dbp_wUrl = items["wUrl"]["value"];
 
-    if((gnjp_value.endsWith("町") || gnjp_value.endsWith("村") ||(
-       !gnjp_value.endsWith("府")  && !gnjp_value.endsWith("県") &&
-       !gnjp_value.endsWith("都")  && !gnjp_value.endsWith("郡") &&(
-       !gnjp_value.endsWith("府大阪市")
-       && !gnjp_value.endsWith("府堺市")
-       && !gnjp_value.endsWith("府京都市")
-       && !gnjp_value.endsWith("道札幌市")
-       && !gnjp_value.endsWith("県仙台市")
-       && !gnjp_value.endsWith("県さいたま市")
-       && !gnjp_value.endsWith("県千葉市")
-       && !gnjp_value.endsWith("県横浜市")
-       && !gnjp_value.endsWith("県川崎市")
-       && !gnjp_value.endsWith("県相模原市")
-       && !gnjp_value.endsWith("県新潟市")
-       && !gnjp_value.endsWith("県静岡市")
-       && !gnjp_value.endsWith("県浜松市")
-       && !gnjp_value.endsWith("県名古屋市")
-       && !gnjp_value.endsWith("県神戸市")
-       && !gnjp_value.endsWith("県岡山市")
-       && !gnjp_value.endsWith("県広島市")
-       && !gnjp_value.endsWith("県北九州市")
-       && !gnjp_value.endsWith("県福岡市")
-       && !gnjp_value.endsWith("県熊本市")
+    if((gnjp_value.lastIndexOf("町") || gnjp_value.lastIndexOf("村") ||(
+       !gnjp_value.lastIndexOf("府")  && !gnjp_value.lastIndexOf("県") &&
+       !gnjp_value.lastIndexOf("都")  && !gnjp_value.lastIndexOf("郡") &&(
+       !gnjp_value.lastIndexOf("府大阪市")
+       && !gnjp_value.lastIndexOf("府堺市")
+       && !gnjp_value.lastIndexOf("府京都市")
+       && !gnjp_value.lastIndexOf("道札幌市")
+       && !gnjp_value.lastIndexOf("県仙台市")
+       && !gnjp_value.lastIndexOf("県さいたま市")
+       && !gnjp_value.lastIndexOf("県千葉市")
+       && !gnjp_value.lastIndexOf("県横浜市")
+       && !gnjp_value.lastIndexOf("県川崎市")
+       && !gnjp_value.lastIndexOf("県相模原市")
+       && !gnjp_value.lastIndexOf("県新潟市")
+       && !gnjp_value.lastIndexOf("県静岡市")
+       && !gnjp_value.lastIndexOf("県浜松市")
+       && !gnjp_value.lastIndexOf("県名古屋市")
+       && !gnjp_value.lastIndexOf("県神戸市")
+       && !gnjp_value.lastIndexOf("県岡山市")
+       && !gnjp_value.lastIndexOf("県広島市")
+       && !gnjp_value.lastIndexOf("県北九州市")
+       && !gnjp_value.lastIndexOf("県福岡市")
+       && !gnjp_value.lastIndexOf("県熊本市")
 
 )))
-       && dbp_value.startsWith("http://ja.dbpedia.org")){
+       && (0 == dbp_value.indexOf("http://ja.dbpedia.org"))){
        cnt++;
        var qPos = dbp_wUrl.indexOf('?');
        var wUrl = dbp_wUrl.substring(0, qPos);
@@ -462,7 +462,7 @@ function getHanaKiToriQueryCallback(tgtGNJP, key,first){
        var ki_value = items["iname"]["value"];
        var ki_image_url = items["imageUrl"]["value"];
 
-      if(dbp_value.startsWith("http://ja.dbpedia.org")){
+      if(0 == dbp_value.indexOf("http://ja.dbpedia.org")){
          var qz = new Object();
          qz['key'] = key;
          qz['name'] =  ki_value;
@@ -498,7 +498,7 @@ function getSisetusQueryWimageCallback(tgtGNJP, first){
        var ki_addr = items["address"]["value"];
        var ki_image_url = items["imageUrl"]["value"];
 
-    if(dbp_value.startsWith("http://ja.dbpedia.org") && ki_addr.startsWith(kenShi) && (!ki_value.endsWith(")") && !ki_value.endsWith("校") )){
+    if((0 == dbp_value.indexOf("http://ja.dbpedia.org")) && (0 == ki_addr.indexOf(kenShi)) && (( 0 != !ki_value.lastIndexOf(")")) && ( 0 != ki_value.lastIndexOf("校")) )){
 
          var qz = new Object();
          qz['key'] = shisetsuKey;
@@ -547,7 +547,7 @@ function getSisetusQueryCallback(tgtGNJP, first){
        var ki_value = items["iname"]["value"];
        var ki_addr = items["address"]["value"];
 
-    if(dbp_value.startsWith("http://ja.dbpedia.org") && ki_addr.startsWith(kenShi) && (!ki_value.endsWith(")") && !ki_value.endsWith("校") )){
+    if((0 == dbp_value.indexOf("http://ja.dbpedia.org")) && ( 0 == ki_addr.indexOf(kenShi)) && (( 0 != ki_value.lastIndexOf(")")) && ( 0 != ki_value.lastIndexOf("校")) )){
 
          var qz = new Object();
          qz['key'] = shisetsuKey;
@@ -713,8 +713,8 @@ function getGNJPShi(gnjp){
        return kenshi.substring(gunPos+1);
      }
 // 市町村(政令市区は政令市もつける)
-     if(kenshi.startsWith("鹿児島" ) || kenshi.startsWith("神奈川" ) ||
- kenshi.startsWith("和歌山" )){
+     if((0 == kenshi.indexOf("鹿児島")) || (0 == kenshi.indexOf("神奈川" )) ||
+ ( 0 == kenshi.indexOf("和歌山" ))){
      return kenshi.substring(4);
    }
     return kenshi.substring(3);
